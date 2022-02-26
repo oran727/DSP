@@ -1,0 +1,72 @@
+# Author:凌逆战
+# -*- coding:utf-8 -*-
+import wave
+import numpy as np
+import scipy.signal as signal
+import matplotlib.pyplot as plt
+
+wp = 0.2
+ws = 0.3
+gpass = 1
+gstop = 40
+b,a = signal.iirdesign(wp,ws,gpass,gstop,False,"ellip","ba")  #采用椭圆型方法，返回分子分母形式
+
+'''z,p,k = signal.iirdesign(wp,ws,gpass,gstop,False,"ellip","zpk")  #返回零极点
+w, gd = signal.group_delay((b, a))  # 计算群延迟'''
+
+w,h = signal.freqz(b,a)
+
+
+
+wavfile =  wave.open("noise/sound_Hnoise.wav","rb")
+
+params = wavfile.getparams()
+#一次性返回所有的音频参数，返回的是一个元组,包括声道数，量化位数(byte单位)，采样频率，采样点数
+nchannels, sampwidth, framesra, frameswav = params[:4]
+datawav = wavfile.readframes(frameswav)
+wavfile.close()
+datause = np.fromstring(datawav,dtype = np.short)
+datause= datause.astype(np.short)
+time = np.arange(0, frameswav) * (1.0/framesra)
+print(framesra)
+
+
+N=len(datause)
+
+c=np.fft.fft(datause)
+
+Freq = np.arange(0, len(c))
+
+y= signal.lfilter(b,a,datause)
+
+
+
+#t = np.arange(0, time, 1.0/framesra)
+
+# 调用scipy.signal库中的chrip函数，
+# 产生长度为10秒、取样频率为44.1kHz、100Hz到1kHz的频率扫描波
+#wave_data = signal.chirp(t, 100, time, 1000, method='linear') * 10000
+
+# 由于chrip函数返回的数组为float64型，
+# 需要调用数组的astype方法将其转换为short型。
+#wave_data = wave_data.astype(np.short)
+
+# 打开WAV音频用来写操作
+f = wave.open(r"noise/test.wav", "wb")
+
+f.setnchannels(1)           # 配置声道数
+f.setsampwidth(2)           # 配置量化位数
+f.setframerate(framesra)   # 配置取样频率
+comptype = "NONE"
+compname = "not compressed"
+
+# 也可以用setparams一次性配置所有参数
+# outwave.setparams((1, 2, framerate, nframes,comptype, compname))
+
+# 将wav_data转换为二进制数据写入文件
+f.writeframes(datause.tostring())
+f.close()
+
+
+
+
